@@ -1,0 +1,7 @@
+<launch>
+    <node pkg="odom2tf" type="odom2tf" name="odom2tf" output="screen">
+      <param name="odom_topic" value="/omron_ros_wheel/odom"/>
+      <param name="parent_frame" value="/odom"/>
+      <param name="child_frame" value="/base_link"/>
+    </node>
+</launch>
