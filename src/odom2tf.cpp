@@ -23,8 +23,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
@@ -33,23 +31,31 @@ static std::string topic = "/omron_ros_wheel/odom";
 static std::string parent_frame = "/odom";
 static std::string child_frame = "/base_link";
 
-void odom_callback(const nav_msgs::OdometryConstPtr& odom){
+ros::Publisher odom_enu_;
+
+void odom_callback(const nav_msgs::OdometryConstPtr &odom)
+{
   static tf::TransformBroadcaster br;
   tf::Transform tf;
-  geometry_msgs::Pose odom_pose = odom->pose.pose;
+  // convert NED to ENU
+  // translation
+  geometry_msgs::Pose odom_pose;
+  odom_pose.position.x = odom->pose.pose.position.x;
+  odom_pose.position.y = -odom->pose.pose.position.y;
+  odom_pose.position.z = -odom->pose.pose.position.z;
+  // rotation
+  odom_pose.orientation.x = odom->pose.pose.orientation.x;
+  odom_pose.orientation.y = -odom->pose.pose.orientation.y;
+  odom_pose.orientation.z = -odom->pose.pose.orientation.z;
+  odom_pose.orientation.w = odom->pose.pose.orientation.w;
 
-//  tf.setOrigin(tf::Vector3(odom_pose.position.x, odom_pose.position.y, odom_pose.position.z));
-//  tf::Quaternion quat;
-//  tf::quaternionMsgToTF(odom_pose.orientation, quat);
-//  tf.setRotation(quat);
   tf::poseMsgToTF(odom_pose, tf);
-
   tf::StampedTransform stamped_tf(tf, odom->header.stamp, parent_frame, child_frame);
-
   br.sendTransform(stamped_tf);
 }
 
-int main(int argc, char **argv){
+int main(int argc, char **argv)
+{
 
   ros::init(argc, argv, "odom2tf");
   ros::NodeHandle nh;
@@ -59,11 +65,11 @@ int main(int argc, char **argv){
   private_nh.getParam("parent_frame", parent_frame);
   private_nh.getParam("child_frame", child_frame);
 
-  std::cout << "Topic: " << topic << std::endl;
-  std::cout << "Parent frame: " << parent_frame << std::endl;
-  std::cout << "Child frame: " << child_frame << std::endl;
+  // std::cout << "Parent frame: " << parent_frame << std::endl;
+  // std::cout << "Child frame: " << child_frame << std::endl;
 
   ros::Subscriber odom_sub = nh.subscribe(topic, 10, odom_callback);
+  // odom_enu_ = nh.advertise<nav_msgs::Odometry>("odom_enu", 1);
   ros::spin();
 
   return 0;
